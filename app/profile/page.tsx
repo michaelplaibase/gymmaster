@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { RankCard } from '@/components/ui/RankCard'
 import { Screen } from '@/components/ui/Screen'
@@ -12,6 +13,11 @@ import { PLAYLIST_LABEL } from '@/lib/ui/tier'
 import { SettingsSection } from './SettingsSection'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Profile',
+  description: 'Career overview: level, playlist ranks, streaks and settings.',
+}
 
 const PLAYLISTS: Playlist[] = ['push', 'pull', 'legs', 'fasting']
 

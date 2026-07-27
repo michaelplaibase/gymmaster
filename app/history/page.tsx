@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { RankBadge } from '@/components/ui/RankBadge'
@@ -10,6 +11,11 @@ import { isPlacement, rankFromMmr, type Playlist, type Rank, type Tier } from '@
 import { PLAYLIST_LABEL, tierClass } from '@/lib/ui/tier'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Match History',
+  description: 'Every training and fasting match on your record.',
+}
 
 const UNRANKED: Rank = { tier: null, division: null, label: 'Unranked', progress: 0 }
 

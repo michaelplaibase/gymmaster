@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { RankBadge } from '@/components/ui/RankBadge'
 import { RankCard } from '@/components/ui/RankCard'
@@ -7,6 +8,10 @@ import { formatRelativeDay } from '@/lib/date'
 import { getWorkoutDetailForHistory } from '@/lib/data/history'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Match Detail',
+}
 
 function fmtKg(weightKg: number): string {
   return weightKg % 1 === 0 ? String(weightKg) : weightKg.toFixed(1)

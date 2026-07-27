@@ -39,6 +39,7 @@ export function ActiveFast({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [result, setResult] = useState<FastResult | null>(null)
   const [showOverlay, setShowOverlay] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Recompute from startedAt on every tick so the timer survives backgrounding
   // and refreshes, and reaches the completable state on its own.
@@ -54,19 +55,33 @@ export function ActiveFast({
   const progress = Math.min(1, targetSec === 0 ? 1 : elapsedSec / targetSec)
 
   function complete() {
+    setError(null)
     startTransition(async () => {
-      const res = await completeFastAction(id)
-      setResult(res)
-      setShowOverlay(res.rating.promoted || res.rating.demoted)
+      try {
+        const res = await completeFastAction(id)
+        setResult(res)
+        setShowOverlay(res.rating.promoted || res.rating.demoted)
+      } catch {
+        // The server refuses a completion before the window is truly over,
+        // which happens when the device clock runs a few seconds fast. Stay
+        // on the screen: the next attempt a moment later succeeds.
+        setError('Not quite yet, hold on a few more seconds and try again.')
+      }
     })
   }
 
   function endEarly() {
+    setError(null)
     startTransition(async () => {
-      const res = await endFastEarlyAction(id)
-      setConfirmOpen(false)
-      setResult(res)
-      setShowOverlay(res.rating.promoted || res.rating.demoted)
+      try {
+        const res = await endFastEarlyAction(id)
+        setConfirmOpen(false)
+        setResult(res)
+        setShowOverlay(res.rating.promoted || res.rating.demoted)
+      } catch {
+        setConfirmOpen(false)
+        setError('Could not end the fast, try again in a moment.')
+      }
     })
   }
 
@@ -237,6 +252,14 @@ export function ActiveFast({
         className="fixed inset-x-0 z-40 mx-auto w-full max-w-md px-4 pb-3"
         style={{ bottom: 'var(--nav-h, calc(4rem + env(safe-area-inset-bottom)))' }}
       >
+        {error && (
+          <p
+            role="status"
+            className="mb-2 rounded-lg border border-border bg-surface/95 px-3 py-2 text-center text-sm text-muted backdrop-blur"
+          >
+            {error}
+          </p>
+        )}
         {done ? (
           <Button size="lg" full disabled={pending} onClick={complete}>
             Complete Fast

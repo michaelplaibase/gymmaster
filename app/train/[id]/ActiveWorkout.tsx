@@ -371,7 +371,6 @@ export function ActiveWorkout({
                         <Button
                           size="lg"
                           disabled={isPending}
-                          aria-label="Repeat last set"
                           onClick={() => {
                             updateDraft(exercise, { weightKg: last.weightKg, reps: last.reps })
                             submitSet(exercise.id, last.weightKg, last.reps)

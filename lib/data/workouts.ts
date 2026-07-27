@@ -18,14 +18,16 @@ import {
   isPlacement,
   levelFromXp,
   rankFromMmr,
+  rankFromRatio,
   rollingBaseline,
   sessionScore,
   setE1rm,
+  strengthRatio,
   trainingDelta,
   workoutXp,
   type Rank,
 } from '@/lib/rating'
-import { defaultTemplate, exerciseHistory, exerciseRank } from './exercises'
+import { defaultTemplate, exerciseHistory, getThresholds } from './exercises'
 import { addXp, getProfile } from './profile'
 import { applyQuestEvent } from './quests'
 import { getRating, recordSession, type SessionRatingResult } from './ratings'
@@ -262,15 +264,40 @@ function computePerExercise(
   return out
 }
 
-function withRanks(entries: PerExerciseEntry[]): WorkoutSummary['perExercise'] {
-  return entries.map((entry) => ({ ...entry, rank: exerciseRank(entry.exercise.id).rank }))
+// Rank for an exercise AS OF a completed match: the best e1RM across completed
+// workouts finished at or before that match (which includes the match itself).
+// A summary is a historical record, so later sessions must not change it: this
+// is what exerciseRank() returned at finish time, and recomputing it the same
+// way on reconstruction keeps the warm cache and the cold path identical.
+function exerciseRankAsOf(exerciseId: string, asOfMs: number): Rank {
+  const unranked: Rank = { tier: null, division: null, label: 'Unranked', progress: 0 }
+  let best: number | null = null
+  for (const entry of exerciseHistory(exerciseId)) {
+    if (entry.finishedAt > asOfMs) continue
+    if (best === null || entry.e1rm > best) best = entry.e1rm
+  }
+  if (best === null) return unranked
+  const profile = getProfile()
+  const ratio = strengthRatio(best, profile.bodyweightKg)
+  const thresholds = getThresholds(exerciseId, profile.sex)
+  if (thresholds.length !== 6) return unranked
+  return rankFromRatio(ratio, thresholds)
 }
+
+function withRanks(entries: PerExerciseEntry[], asOfMs: number): WorkoutSummary['perExercise'] {
+  return entries.map((entry) => ({ ...entry, rank: exerciseRankAsOf(entry.exercise.id, asOfMs) }))
+}
+
+// Ratios within EPSILON of each other are the same improvement (floating point
+// noise from mathematically identical fractions), so the earlier exercise in
+// the workout keeps MVP: a deterministic tie break instead of an fp coin flip.
+const RATIO_EPSILON = 1e-9
 
 function pickMvp(entries: PerExerciseEntry[]): WorkoutSummary['mvp'] {
   let best: WorkoutSummary['mvp'] = null
   for (const entry of entries) {
     if (entry.ratio === null) continue
-    if (best === null || entry.ratio > best.ratio) {
+    if (best === null || entry.ratio > best.ratio + RATIO_EPSILON) {
       best = { exerciseId: entry.exercise.id, name: entry.exercise.name, ratio: entry.ratio }
     }
   }
@@ -332,11 +359,12 @@ export function finishWorkout(workoutId: number): WorkoutSummary {
       .where(eq(workouts.id, workoutId))
       .run()
 
+    const completed = getWorkout(workoutId)!
     const summary: WorkoutSummary = {
-      workout: getWorkout(workoutId)!,
+      workout: completed,
       rating,
       score,
-      perExercise: withRanks(entries),
+      perExercise: withRanks(entries, completed.finishedAt!.getTime()),
       mvp: pickMvp(entries),
       prCount,
       xpEarned,
@@ -417,7 +445,7 @@ export function getWorkoutSummary(workoutId: number): WorkoutSummary {
     workout,
     rating: reconstructRating(workout),
     score: workout.score ?? sessionScore(entries),
-    perExercise: withRanks(entries),
+    perExercise: withRanks(entries, finishedAt.getTime()),
     mvp: pickMvp(entries),
     prCount: workout.prCount,
     xpEarned: workout.xpEarned,

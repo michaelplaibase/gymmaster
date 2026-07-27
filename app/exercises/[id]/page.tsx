@@ -1,4 +1,5 @@
-import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { notFound, redirect } from 'next/navigation'
 import { E1rmChart } from '@/components/progression/E1rmChart'
 import { RankBadge } from '@/components/ui/RankBadge'
 import { Screen } from '@/components/ui/Screen'
@@ -8,11 +9,21 @@ import {
   getExercise,
   getThresholds,
 } from '@/lib/data/exercises'
-import { getProfile } from '@/lib/data/profile'
+import { getProfile, isOnboarded } from '@/lib/data/profile'
 import { TIERS, repsForRatio, tierLabel } from '@/lib/rating'
 import { tierClass } from '@/lib/ui/tier'
 
 export const dynamic = 'force-dynamic'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const exercise = getExercise(id)
+  return { title: exercise ? exercise.name : 'Exercise' }
+}
 
 function fmtKg(value: number): string {
   const rounded = Math.round(value * 2) / 2
@@ -24,6 +35,7 @@ export default async function ExerciseDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  if (!isOnboarded()) redirect('/onboarding')
   const { id } = await params
   const exercise = getExercise(id)
   if (!exercise) notFound()
@@ -45,6 +57,8 @@ export default async function ExerciseDetailPage({
       }
     }
   }
+  const nextTierReps =
+    isBodyweight && nextTierIndex !== null ? repsForRatio(thresholds[nextTierIndex]) : null
 
   return (
     <Screen title={exercise.name} back="/exercises">
@@ -83,9 +97,9 @@ export default async function ExerciseDetailPage({
               {fmtKg(thresholds[nextTierIndex] * profile.bodyweightKg)} kg
             </span>{' '}
             e1RM
-            {isBodyweight && (
+            {nextTierReps !== null && (
               <span className="block text-xs">
-                about {repsForRatio(thresholds[nextTierIndex])} reps at bodyweight
+                about {nextTierReps} {nextTierReps === 1 ? 'rep' : 'reps'} at bodyweight
               </span>
             )}
           </div>

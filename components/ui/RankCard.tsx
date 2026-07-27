@@ -23,6 +23,9 @@ export function RankCard({
     placementsRemaining ?? Math.max(0, PLACEMENT_SESSIONS - sessionsPlayed)
   const placementsComplete = Math.max(0, PLACEMENT_SESSIONS - remaining)
   const placementLabel = `${placementsComplete} of ${PLACEMENT_SESSIONS} placements complete`
+  // Compact tiles are ~111px wide, so the full sentence clips. This short
+  // form fits without truncation at the current tile width.
+  const compactPlacementLabel = `${placementsComplete}/${PLACEMENT_SESSIONS} placements`
   const progress = placing ? sessionsPlayed / PLACEMENT_SESSIONS : rank.progress
   const tier = placing ? null : rank.tier
   const surface = `relative overflow-hidden border border-border bg-surface ${tierGradient(tier)} ${tierClass(tier)}`
@@ -37,7 +40,7 @@ export function RankCard({
               {PLAYLIST_LABEL[playlist]}
             </div>
             <div className="truncate font-display text-[13px] font-semibold">
-              {placing ? placementLabel : rank.label}
+              {placing ? compactPlacementLabel : rank.label}
             </div>
           </div>
           {!placing && <div className="num text-lg font-bold">{mmr}</div>}

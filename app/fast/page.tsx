@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { RankCard } from '@/components/ui/RankCard'
@@ -11,6 +12,11 @@ import { ActiveFast } from './ActiveFast'
 import { StartFast } from './StartFast'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Fasting',
+  description: 'Start a fasting match, hold the window and defend your streak.',
+}
 
 export default function FastPage() {
   if (!isOnboarded()) redirect('/onboarding')

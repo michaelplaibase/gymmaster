@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { startMatchAction } from '@/app/actions/training'
@@ -10,6 +11,11 @@ import { rankFromMmr } from '@/lib/rating'
 import { PLAYLIST_LABEL } from '@/lib/ui/tier'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Train',
+  description: 'Queue a ranked training match: Push, Pull or Legs.',
+}
 
 const PLAYLISTS = ['push', 'pull', 'legs'] as const
 
@@ -45,21 +51,37 @@ export default function TrainPage() {
       <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted">
         Select Playlist
       </h2>
+      {active && (
+        <p className="-mt-1 mb-3 text-xs leading-snug text-muted">
+          Playlists are locked while your {PLAYLIST_LABEL[active.workoutType]} match is live.
+          Resume it above, or finish or abandon it to queue another.
+        </p>
+      )}
       <div className="space-y-3">
         {PLAYLISTS.map((playlist) => {
           const rating = getRating(playlist)
+          const card = (
+            <RankCard
+              playlist={playlist}
+              rank={rankFromMmr(rating.mmr)}
+              mmr={rating.mmr}
+              sessionsPlayed={rating.sessionsPlayed}
+            />
+          )
+          if (active) {
+            return (
+              <div key={playlist} aria-disabled="true" className="opacity-45">
+                {card}
+              </div>
+            )
+          }
           return (
             <form key={playlist} action={startMatchAction.bind(null, playlist)}>
               <button
                 type="submit"
                 className="w-full text-left transition-transform active:scale-[0.99]"
               >
-                <RankCard
-                  playlist={playlist}
-                  rank={rankFromMmr(rating.mmr)}
-                  mmr={rating.mmr}
-                  sessionsPlayed={rating.sessionsPlayed}
-                />
+                {card}
               </button>
             </form>
           )

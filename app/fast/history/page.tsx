@@ -1,10 +1,25 @@
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { Screen } from '@/components/ui/Screen'
 import { listFasts } from '@/lib/data/fasts'
+import { isOnboarded } from '@/lib/data/profile'
 import { formatDuration, formatRelativeDay } from '@/lib/date'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata: Metadata = {
+  title: 'Fasting History',
+  description: 'Every finished fasting match: outcome, duration and MMR.',
+}
+
+// 'HH:MM' local time.
+function formatClock(ts: number): string {
+  const d = new Date(ts)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 export default function FastHistoryPage() {
+  if (!isOnboarded()) redirect('/onboarding')
   const rows = listFasts(50)
 
   return (
@@ -29,7 +44,10 @@ export default function FastHistoryPage() {
             return (
               <li key={fast.id} className="rounded-2xl border border-border bg-surface p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-muted">{formatRelativeDay(endedMs)}</span>
+                  <span className="text-xs text-muted">
+                    {formatRelativeDay(endedMs)}, {formatClock(fast.startedAt.getTime())} to{' '}
+                    {formatClock(endedMs)}
+                  </span>
                   <span
                     className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${
                       won

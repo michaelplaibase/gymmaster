@@ -16,7 +16,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "RANKED",
+  title: {
+    default: "RANKED",
+    template: "%s, RANKED",
+  },
+  description:
+    "Training and fasting as a ranked ladder: play placements, earn MMR, climb the tiers.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

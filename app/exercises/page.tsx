@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { RankBadge } from '@/components/ui/RankBadge'
@@ -8,6 +9,11 @@ import type { WorkoutType } from '@/db/schema'
 import { PLAYLIST_LABEL } from '@/lib/ui/tier'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Exercise Library',
+  description: 'Every exercise with its rank, tier thresholds and form guide.',
+}
 
 const GROUPS: WorkoutType[] = ['push', 'pull', 'legs']
 

@@ -12,8 +12,12 @@ function fmtKg(weightKg: number): string {
   return weightKg % 1 === 0 ? String(weightKg) : weightKg.toFixed(1)
 }
 
+// Absorbs floating point noise before rounding (the same approach as the rank
+// division boundaries) so mathematically equal ratios display the same percent.
+const PCT_EPSILON = 1e-9
+
 function signedPct(ratio: number): string {
-  const pct = Math.round((ratio - 1) * 100)
+  const pct = Math.round((ratio - 1) * 100 + PCT_EPSILON)
   return pct >= 0 ? `+${pct}%` : `${pct}%`
 }
 

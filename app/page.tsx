@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { QuestList } from '@/components/progression/QuestList'
@@ -22,6 +23,10 @@ import {
 import { PLAYLIST_LABEL } from '@/lib/ui/tier'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  description: 'Home hub: your level, live matches, daily quests and playlist ranks.',
+}
 
 const PLAYLISTS: Playlist[] = ['push', 'pull', 'legs', 'fasting']
 
