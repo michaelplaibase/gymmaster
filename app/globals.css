@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #07080b;
+  --color-surface: #0f1117;
+  --color-surface-2: #161923;
+  --color-border: #232838;
+  --color-text: #e9ecf3;
+  --color-muted: #8a93a8;
+  --color-danger: #ff4d5e;
+  --color-success: #37d67a;
+
+  --color-tier-bronze: #c97b3c;
+  --color-tier-silver: #b7c0cc;
+  --color-tier-gold: #e8b33a;
+  --color-tier-platinum: #6fe3e1;
+  --color-tier-diamond: #7aa5ff;
+  --color-tier-emerald: #37d67a;
+
+  --color-tier-bronze-dim: #c97b3c33;
+  --color-tier-silver-dim: #b7c0cc33;
+  --color-tier-gold-dim: #e8b33a33;
+  --color-tier-platinum-dim: #6fe3e133;
+  --color-tier-diamond-dim: #7aa5ff33;
+  --color-tier-emerald-dim: #37d67a33;
+}
+
+@theme inline {
+  --font-display: var(--font-chakra, "Chakra Petch", "Segoe UI", system-ui, sans-serif);
+  --font-body: var(--font-inter, Inter, "Segoe UI", system-ui, sans-serif);
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+}
+
+@utility num {
+  font-family: var(--font-chakra, "Chakra Petch", "Segoe UI", system-ui, sans-serif);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@layer utilities {
+  .tier-bronze {
+    --tier: var(--color-tier-bronze);
+  }
+  .tier-silver {
+    --tier: var(--color-tier-silver);
+  }
+  .tier-gold {
+    --tier: var(--color-tier-gold);
+  }
+  .tier-platinum {
+    --tier: var(--color-tier-platinum);
+  }
+  .tier-diamond {
+    --tier: var(--color-tier-diamond);
+  }
+  .tier-emerald {
+    --tier: var(--color-tier-emerald);
+  }
+  .tier-unranked {
+    --tier: var(--color-muted);
+  }
+
+  .tier-text {
+    color: var(--tier);
+  }
+  .tier-bg {
+    background: var(--tier);
+  }
+  .tier-border {
+    border-color: var(--tier);
+  }
+  .tier-glow {
+    box-shadow: 0 0 24px -4px var(--tier);
+  }
+}
