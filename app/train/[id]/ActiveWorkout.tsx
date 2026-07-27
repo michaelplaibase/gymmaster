@@ -26,6 +26,14 @@ type Draft = { weightKg: number; reps: number }
 const WEIGHT_STEP = 2.5
 const REST_PRESETS = [60, 90, 120, 180]
 
+// How long mutating controls stay blocked AFTER a server action settles. On a
+// fast server the round trip can beat the gap between two accidental taps, so
+// an in flight guard alone lets the second tap through. 350 ms covers the
+// classic mobile double tap window (~300 ms, plus margin): an accidental
+// double lands well inside it, while a deliberate repeat tap (react to the
+// updated list, decide, tap again) takes at least half a second.
+const MUTATION_COOLDOWN_MS = 350
+
 function fmtKg(weightKg: number): string {
   return weightKg % 1 === 0 ? String(weightKg) : weightKg.toFixed(1)
 }
@@ -155,8 +163,17 @@ export function ActiveWorkout({
   const [isPending, startTransition] = useTransition()
   // Synchronous double submit guard: isPending only flips after a re render,
   // so a rapid double tap runs both handlers before React updates. The ref
-  // blocks the second call before the first action settles.
+  // blocks the second call before the first action settles, and stays set for
+  // MUTATION_COOLDOWN_MS afterwards: a fast server can settle in under the
+  // gap between two accidental taps, so releasing on settle is not enough.
   const mutationPendingRef = useRef(false)
+  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
+    }
+  }, [])
 
   function runMutation(action: () => Promise<void>) {
     if (mutationPendingRef.current) return
@@ -165,7 +182,9 @@ export function ActiveWorkout({
       try {
         await action()
       } finally {
-        mutationPendingRef.current = false
+        cooldownTimerRef.current = setTimeout(() => {
+          mutationPendingRef.current = false
+        }, MUTATION_COOLDOWN_MS)
       }
     })
   }

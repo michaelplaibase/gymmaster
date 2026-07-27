@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { completeFastAction, endFastEarlyAction } from '@/app/actions/fasting'
 import { Button } from '@/components/ui/Button'
 import { PromotionOverlay } from '@/components/ui/PromotionOverlay'
@@ -13,6 +13,14 @@ import { tierClass } from '@/lib/ui/tier'
 
 const RADIUS = 84
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
+
+// How long the freshly revealed result screen ignores taps on Continue. The
+// two taps of a double tap land within ~300ms of each other (the classic
+// browser double tap threshold), and the result can only appear between them,
+// so 400ms covers the stray second tap plus render jitter. A deliberate
+// Continue tap comes after the user has read the result, far beyond 400ms, so
+// the button never feels unresponsive.
+const RESULT_TAP_GUARD_MS = 400
 
 function clockTime(ms: number): string {
   return new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -40,6 +48,26 @@ export function ActiveFast({
   const [result, setResult] = useState<FastResult | null>(null)
   const [showOverlay, setShowOverlay] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Synchronous double submit guard: pending only flips after a re render,
+  // so a rapid double tap runs both handlers before React updates. The ref
+  // blocks the second call before the first action settles, mirroring the
+  // active workout screen.
+  const mutationPendingRef = useRef(false)
+  // When the result screen was revealed, so a stray second tap from a double
+  // tap cannot immediately dismiss it. See RESULT_TAP_GUARD_MS.
+  const resultShownAtRef = useRef(0)
+
+  function runMutation(action: () => Promise<void>) {
+    if (mutationPendingRef.current) return
+    mutationPendingRef.current = true
+    startTransition(async () => {
+      try {
+        await action()
+      } finally {
+        mutationPendingRef.current = false
+      }
+    })
+  }
 
   // Recompute from startedAt on every tick so the timer survives backgrounding
   // and refreshes, and reaches the completable state on its own.
@@ -56,9 +84,10 @@ export function ActiveFast({
 
   function complete() {
     setError(null)
-    startTransition(async () => {
+    runMutation(async () => {
       try {
         const res = await completeFastAction(id)
+        resultShownAtRef.current = Date.now()
         setResult(res)
         setShowOverlay(res.rating.promoted || res.rating.demoted)
       } catch {
@@ -72,10 +101,11 @@ export function ActiveFast({
 
   function endEarly() {
     setError(null)
-    startTransition(async () => {
+    runMutation(async () => {
       try {
         const res = await endFastEarlyAction(id)
         setConfirmOpen(false)
+        resultShownAtRef.current = Date.now()
         setResult(res)
         setShowOverlay(res.rating.promoted || res.rating.demoted)
       } catch {
@@ -180,7 +210,17 @@ export function ActiveFast({
           className="fixed inset-x-0 z-40 mx-auto w-full max-w-md px-4 pb-3"
           style={{ bottom: 'var(--nav-h, calc(4rem + env(safe-area-inset-bottom)))' }}
         >
-          <Button size="lg" full onClick={() => router.refresh()}>
+          <Button
+            size="lg"
+            full
+            onClick={() => {
+              // Ignore the stray second tap of a double tap on Complete Fast,
+              // which would otherwise dismiss the result the instant it
+              // appears. See RESULT_TAP_GUARD_MS.
+              if (Date.now() - resultShownAtRef.current < RESULT_TAP_GUARD_MS) return
+              router.refresh()
+            }}
+          >
             Continue
           </Button>
         </div>

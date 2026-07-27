@@ -1,13 +1,20 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { startFastAction } from '@/app/actions/fasting'
 import { Button } from '@/components/ui/Button'
 import { Sheet } from '@/components/ui/Sheet'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const MINUTES = Array.from({ length: 60 }, (_, i) => i)
+
+// How long mutating controls stay blocked AFTER a server action settles. On a
+// fast server the round trip can beat the gap between two accidental taps, so
+// an in flight guard alone lets the second tap through. Matches
+// MUTATION_COOLDOWN_MS on the active workout screen so behaviour is
+// consistent across the app.
+const MUTATION_COOLDOWN_MS = 350
 
 export function StartFast({
   presets,
@@ -20,9 +27,36 @@ export function StartFast({
   const [hours, setHours] = useState(16)
   const [minutes, setMinutes] = useState(0)
   const customSec = hours * 3600 + minutes * 60
+  // Synchronous double submit guard: pending only flips after a re render,
+  // so a rapid double tap runs both handlers before React updates. The ref
+  // blocks the second call before the first action settles, and stays set for
+  // MUTATION_COOLDOWN_MS afterwards: a fast server can settle in under the
+  // gap between two accidental taps, so releasing on settle is not enough.
+  const mutationPendingRef = useRef(false)
+  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
+    }
+  }, [])
+
+  function runMutation(action: () => Promise<void>) {
+    if (mutationPendingRef.current) return
+    mutationPendingRef.current = true
+    startTransition(async () => {
+      try {
+        await action()
+      } finally {
+        cooldownTimerRef.current = setTimeout(() => {
+          mutationPendingRef.current = false
+        }, MUTATION_COOLDOWN_MS)
+      }
+    })
+  }
 
   function start(preset: string, targetSec: number) {
-    startTransition(async () => {
+    runMutation(async () => {
       await startFastAction({ preset, targetSec })
       router.refresh()
     })

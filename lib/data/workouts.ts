@@ -355,6 +355,8 @@ export function finishWorkout(workoutId: number): WorkoutSummary {
         wasPlacement,
         prCount,
         xpEarned,
+        levelBefore,
+        levelAfter,
       })
       .where(eq(workouts.id, workoutId))
       .run()
@@ -449,7 +451,14 @@ export function getWorkoutSummary(workoutId: number): WorkoutSummary {
     mvp: pickMvp(entries),
     prCount: workout.prCount,
     xpEarned: workout.xpEarned,
-    levelUp: null,
+    // Reads the persisted transition instead of recomputing, so this matches
+    // what finishWorkout showed. Pre column rows are null and show no caption.
+    levelUp:
+      workout.levelBefore !== null &&
+      workout.levelAfter !== null &&
+      workout.levelAfter > workout.levelBefore
+        ? { from: workout.levelBefore, to: workout.levelAfter }
+        : null,
     questsCompleted: questsCompletedNear(workout),
   }
 }

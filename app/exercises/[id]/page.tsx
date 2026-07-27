@@ -22,7 +22,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params
   const exercise = getExercise(id)
-  return { title: exercise ? exercise.name : 'Exercise' }
+  return { title: exercise ? exercise.name : 'Not Found' }
 }
 
 function fmtKg(value: number): string {

@@ -70,6 +70,11 @@ export const workouts = sqliteTable('workouts', {
     .default(false),
   prCount: integer('pr_count').notNull().default(0),
   xpEarned: integer('xp_earned').notNull().default(0),
+  // Level transition at finish time, persisted so the summary page renders
+  // identically warm and cold. Nullable: rows completed before these columns
+  // existed stay null and simply show no level caption.
+  levelBefore: integer('level_before'),
+  levelAfter: integer('level_after'),
 });
 
 export const workoutExercises = sqliteTable(
