@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { startMatchAction } from '@/app/actions/training'
 import { RankCard } from '@/components/ui/RankCard'
 import { Screen } from '@/components/ui/Screen'
+import { isOnboarded } from '@/lib/data/profile'
 import { getRating } from '@/lib/data/ratings'
 import { getActiveWorkout } from '@/lib/data/workouts'
 import { rankFromMmr } from '@/lib/rating'
@@ -12,6 +14,7 @@ export const dynamic = 'force-dynamic'
 const PLAYLISTS = ['push', 'pull', 'legs'] as const
 
 export default function TrainPage() {
+  if (!isOnboarded()) redirect('/onboarding')
   const active = getActiveWorkout()
   return (
     <Screen title="Ranked" back="/">

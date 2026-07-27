@@ -45,7 +45,7 @@ export function Screen({
         </header>
       )}
       <main
-        className={`${padded ? 'px-4 pt-4' : ''} pb-[calc(env(safe-area-inset-bottom)+6.5rem)]`}
+        className={`${padded ? 'px-4 pt-4' : ''} pb-[calc(var(--nav-h,calc(4rem_+_env(safe-area-inset-bottom)))_+_2.5rem)]`}
       >
         {children}
       </main>

@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { RankCard } from '@/components/ui/RankCard'
 import { Screen } from '@/components/ui/Screen'
 import { PRESETS, currentStreak, getActiveFast } from '@/lib/data/fasts'
+import { isOnboarded } from '@/lib/data/profile'
 import { getRating } from '@/lib/data/ratings'
 import { isPlacement, placementsRemaining, rankFromMmr } from '@/lib/rating'
 import { tierClass } from '@/lib/ui/tier'
@@ -11,6 +13,7 @@ import { StartFast } from './StartFast'
 export const dynamic = 'force-dynamic'
 
 export default function FastPage() {
+  if (!isOnboarded()) redirect('/onboarding')
   const active = getActiveFast()
   const rating = getRating('fasting')
   const rank = rankFromMmr(rating.mmr)

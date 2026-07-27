@@ -46,8 +46,10 @@ export function OnboardingForm() {
   const [rest, setRest] = useState(90)
   const [pending, startTransition] = useTransition()
 
-  const parsed = Number.parseFloat(weight.replace(',', '.'))
-  const weightValid = Number.isFinite(parsed) && parsed >= 30 && parsed <= 300
+  const normalized = weight.trim().replace(',', '.')
+  const numericFormat = /^\d+(\.\d+)?$/.test(normalized)
+  const parsed = numericFormat ? Number.parseFloat(normalized) : Number.NaN
+  const weightValid = numericFormat && parsed >= 30 && parsed <= 300
   const canSubmit = weightValid && sex !== null && !pending
 
   function bump(delta: number) {
@@ -105,6 +107,11 @@ export function OnboardingForm() {
               +
             </button>
           </div>
+          {!weightValid && (
+            <p role="alert" className="mt-2 text-xs font-medium text-danger">
+              Enter a number between 30 and 300 kg.
+            </p>
+          )}
         </section>
 
         <section>

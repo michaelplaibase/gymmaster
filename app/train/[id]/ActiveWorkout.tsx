@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import {
   abandonMatchAction,
   addExerciseAction,
@@ -15,7 +15,8 @@ import { Screen } from '@/components/ui/Screen'
 import { Sheet } from '@/components/ui/Sheet'
 import type { WorkoutType } from '@/db/schema'
 import { formatDuration } from '@/lib/date'
-import { PLAYLIST_LABEL } from '@/lib/ui/tier'
+import type { Tier } from '@/lib/rating'
+import { PLAYLIST_LABEL, tierClass } from '@/lib/ui/tier'
 
 type SessionExercise = { id: string; name: string; loadType: 'external' | 'bodyweight' }
 type LoggedSet = { id: number; exerciseId: string; weightKg: number; reps: number }
@@ -130,6 +131,7 @@ function Stepper({
 export function ActiveWorkout({
   workoutId,
   workoutType,
+  tier,
   startedAtMs,
   defaultRestSec,
   exercises,
@@ -138,6 +140,7 @@ export function ActiveWorkout({
 }: {
   workoutId: number
   workoutType: WorkoutType
+  tier: Tier | null
   startedAtMs: number
   defaultRestSec: number
   exercises: SessionExercise[]
@@ -150,11 +153,53 @@ export function ActiveWorkout({
   const [rest, setRest] = useState<{ endsAt: number; totalSec: number } | null>(null)
   const [sheet, setSheet] = useState<'edit' | 'finish' | null>(null)
   const [isPending, startTransition] = useTransition()
+  // Synchronous double submit guard: isPending only flips after a re render,
+  // so a rapid double tap runs both handlers before React updates. The ref
+  // blocks the second call before the first action settles.
+  const mutationPendingRef = useRef(false)
+
+  function runMutation(action: () => Promise<void>) {
+    if (mutationPendingRef.current) return
+    mutationPendingRef.current = true
+    startTransition(async () => {
+      try {
+        await action()
+      } finally {
+        mutationPendingRef.current = false
+      }
+    })
+  }
+
+  const restStorageKey = `ranked-rest-${workoutId}`
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 500)
     return () => clearInterval(timer)
   }, [])
+
+  // Rehydrate a running rest timer after navigating away and back. Remaining
+  // time is always computed from the persisted start timestamp, never from a
+  // stored counter.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(restStorageKey)
+      if (!raw) return
+      const parsed = JSON.parse(raw) as { startedAtMs?: unknown; totalSec?: unknown }
+      if (typeof parsed.startedAtMs !== 'number' || typeof parsed.totalSec !== 'number') {
+        sessionStorage.removeItem(restStorageKey)
+        return
+      }
+      const endsAt = parsed.startedAtMs + parsed.totalSec * 1000
+      if (endsAt <= Date.now()) {
+        sessionStorage.removeItem(restStorageKey)
+        return
+      }
+      setNow(Date.now())
+      setRest({ endsAt, totalSec: parsed.totalSec })
+    } catch {
+      // sessionStorage unavailable or corrupt: skip rehydration.
+    }
+  }, [restStorageKey])
 
   const restRemaining = rest
     ? Math.min(rest.totalSec, Math.max(0, Math.ceil((rest.endsAt - now) / 1000)))
@@ -163,8 +208,13 @@ export function ActiveWorkout({
     if (rest && now >= rest.endsAt) {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(200)
       setRest(null)
+      try {
+        sessionStorage.removeItem(restStorageKey)
+      } catch {
+        // sessionStorage unavailable: nothing persisted to clear.
+      }
     }
-  }, [now, rest])
+  }, [now, rest, restStorageKey])
 
   const elapsedSec = Math.max(0, Math.floor((now - startedAtMs) / 1000))
 
@@ -190,10 +240,24 @@ export function ActiveWorkout({
     const nowMs = Date.now()
     setNow(nowMs)
     setRest({ endsAt: nowMs + totalSec * 1000, totalSec })
+    try {
+      sessionStorage.setItem(restStorageKey, JSON.stringify({ startedAtMs: nowMs, totalSec }))
+    } catch {
+      // sessionStorage unavailable: the timer runs, it just cannot survive navigation.
+    }
+  }
+
+  function skipRest() {
+    setRest(null)
+    try {
+      sessionStorage.removeItem(restStorageKey)
+    } catch {
+      // sessionStorage unavailable: nothing persisted to clear.
+    }
   }
 
   function submitSet(exerciseId: string, weightKg: number, reps: number) {
-    startTransition(async () => {
+    runMutation(async () => {
       await logSetAction(workoutId, exerciseId, weightKg, reps)
       startRest(defaultRestSec)
     })
@@ -203,12 +267,15 @@ export function ActiveWorkout({
   const exercisesWithSets = exercises.filter((exercise) => setsFor(exercise.id).length > 0).length
 
   return (
+    // tierClass sets the --tier variable so the accents below (elapsed timer,
+    // rest label, rest progress) pick up the playlist's tier color.
+    <div className={tierClass(tier)}>
     <Screen
       title={PLAYLIST_LABEL[workoutType]}
       back="/train"
       action={
         <div className="flex items-center gap-2">
-          <span suppressHydrationWarning className="num text-lg font-bold text-muted">
+          <span suppressHydrationWarning className="num tier-text text-lg font-bold">
             {formatDuration(elapsedSec)}
           </span>
           <Button variant="secondary" onClick={() => setSheet('finish')}>
@@ -261,7 +328,7 @@ export function ActiveWorkout({
                             aria-label={`Delete set ${index + 1}`}
                             disabled={isPending}
                             onClick={() =>
-                              startTransition(async () => {
+                              runMutation(async () => {
                                 await deleteSetAction(workoutId, set.id)
                               })
                             }
@@ -343,14 +410,19 @@ export function ActiveWorkout({
         Edit exercises
       </Button>
 
+      {/* Extra clearance so content is never hidden behind the rest bar,
+          which itself sits directly above the bottom nav. */}
       {rest && <div aria-hidden className="h-28" />}
 
       {rest && (
-        <div className="fixed inset-x-0 bottom-0 z-40">
-          <div className="mx-auto w-full max-w-md border-t border-border bg-surface/95 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur">
+        <div
+          className="fixed inset-x-0 z-40"
+          style={{ bottom: 'var(--nav-h, calc(4rem + env(safe-area-inset-bottom)))' }}
+        >
+          <div className="mx-auto w-full max-w-md border-t border-border bg-surface/95 px-4 pt-2 pb-3 backdrop-blur">
             <div className="flex items-end justify-between">
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+                <div className="tier-text text-[10px] font-semibold uppercase tracking-widest">
                   Rest
                 </div>
                 <div className="num text-5xl font-bold leading-none" data-testid="rest-remaining">
@@ -374,7 +446,7 @@ export function ActiveWorkout({
                 ))}
                 <button
                   type="button"
-                  onClick={() => setRest(null)}
+                  onClick={skipRest}
                   className="min-h-11 rounded-lg px-2 text-[11px] font-semibold uppercase tracking-widest text-muted active:text-text"
                 >
                   Skip
@@ -382,7 +454,10 @@ export function ActiveWorkout({
               </div>
             </div>
             <div className="mt-2">
-              <ProgressBar value={rest.totalSec > 0 ? restRemaining / rest.totalSec : 0} />
+              <ProgressBar
+                value={rest.totalSec > 0 ? restRemaining / rest.totalSec : 0}
+                tone="tier"
+              />
             </div>
           </div>
         </div>
@@ -399,7 +474,7 @@ export function ActiveWorkout({
                 type="button"
                 disabled={isPending}
                 onClick={() =>
-                  startTransition(async () => {
+                  runMutation(async () => {
                     if (inSession) await removeExerciseAction(workoutId, candidate.id)
                     else await addExerciseAction(workoutId, candidate.id)
                   })
@@ -447,7 +522,7 @@ export function ActiveWorkout({
               full
               disabled={isPending}
               onClick={() =>
-                startTransition(async () => {
+                runMutation(async () => {
                   await finishMatchAction(workoutId)
                 })
               }
@@ -469,7 +544,7 @@ export function ActiveWorkout({
               full
               disabled={isPending}
               onClick={() =>
-                startTransition(async () => {
+                runMutation(async () => {
                   await abandonMatchAction(workoutId)
                 })
               }
@@ -483,6 +558,7 @@ export function ActiveWorkout({
         )}
       </Sheet>
     </Screen>
+    </div>
   )
 }
 

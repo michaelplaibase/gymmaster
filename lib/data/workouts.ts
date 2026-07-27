@@ -16,6 +16,7 @@ import {
   PLACEMENT_SESSIONS,
   bestSetE1rm,
   isPlacement,
+  levelFromXp,
   rankFromMmr,
   rollingBaseline,
   sessionScore,
@@ -78,7 +79,7 @@ export function getActiveWorkout(): Workout | null {
   )
 }
 
-function getWorkout(id: number): Workout | null {
+export function getWorkout(id: number): Workout | null {
   return db.select().from(workouts).where(eq(workouts.id, id)).get() ?? null
 }
 
@@ -224,8 +225,8 @@ function pickBestSet(
 
 // Per exercise session numbers. Only completed workouts other than this one
 // (and, when beforeMs is set, finished before it) count toward the baseline
-// and the PR comparison. A first ever exercise has no record to beat, so it
-// is not flagged as a PR.
+// and the PR comparison. A first ever exercise has no previous best, so this
+// session's result IS the all time best and counts as a PR.
 function computePerExercise(
   detail: WorkoutDetail,
   bodyweightKg: number,
@@ -253,7 +254,7 @@ function computePerExercise(
       sessionE1rm,
       baselineE1rm,
       ratio,
-      isPr: allTimeBest !== null && sessionE1rm > allTimeBest,
+      isPr: allTimeBest === null || sessionE1rm > allTimeBest,
       setCount: sets.length,
       bestSet: pickBestSet(sets, exercise.loadType, bodyweightKg),
     })
@@ -297,9 +298,6 @@ export function finishWorkout(workoutId: number): WorkoutSummary {
     const totalReps = allSets.reduce((sum, set) => sum + set.reps, 0)
     const xpEarned = workoutXp(setCount)
     const xpResult = addXp(xpEarned)
-    const levelUp = xpResult.leveledUp
-      ? { from: xpResult.levelBefore, to: xpResult.levelAfter }
-      : null
 
     const questResult = applyQuestEvent({
       kind: 'workout_completed',
@@ -312,6 +310,12 @@ export function finishWorkout(workoutId: number): WorkoutSummary {
       title: quest.title,
       xpReward: quest.xpReward,
     }))
+
+    // Level transition spans EVERY award from this match (workout XP plus
+    // quest rewards), so the label matches the level the player ends at.
+    const levelBefore = levelFromXp(xpResult.xpBefore).level
+    const levelAfter = levelFromXp(xpResult.xpAfter + questResult.xpAwarded).level
+    const levelUp = levelAfter > levelBefore ? { from: levelBefore, to: levelAfter } : null
 
     db.update(workouts)
       .set({

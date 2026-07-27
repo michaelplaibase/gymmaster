@@ -8,11 +8,14 @@ export default function FastHistoryPage() {
   const rows = listFasts(50)
 
   return (
-    <Screen title="Match History" back="/fast">
+    <Screen title="Fasting History" back="/fast">
       {rows.length === 0 ? (
-        <p className="mt-16 text-center text-sm text-muted">
-          No matches yet. Complete a fast to open your record.
-        </p>
+        <div className="rounded-2xl border border-border bg-surface p-6 text-center">
+          <div className="font-display text-lg font-semibold">No fasts yet</div>
+          <p className="mt-1 text-sm text-muted">
+            Complete a fasting window and it shows up in your record here.
+          </p>
+        </div>
       ) : (
         <ul className="space-y-2">
           {rows.map((fast) => {

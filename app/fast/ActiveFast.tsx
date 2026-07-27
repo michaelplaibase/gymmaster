@@ -33,7 +33,9 @@ export function ActiveFast({
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const [nowMs, setNowMs] = useState<number | null>(null)
+  // Initialised from a real timestamp so the first painted frame already
+  // shows the true remaining time instead of the full target.
+  const [nowMs, setNowMs] = useState<number>(() => Date.now())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [result, setResult] = useState<FastResult | null>(null)
   const [showOverlay, setShowOverlay] = useState(false)
@@ -46,7 +48,7 @@ export function ActiveFast({
     return () => clearInterval(interval)
   }, [])
 
-  const elapsedSec = nowMs === null ? 0 : Math.max(0, Math.floor((nowMs - startedAtMs) / 1000))
+  const elapsedSec = Math.max(0, Math.floor((nowMs - startedAtMs) / 1000))
   const remainingSec = Math.max(0, targetSec - elapsedSec)
   const done = elapsedSec >= targetSec
   const progress = Math.min(1, targetSec === 0 ? 1 : elapsedSec / targetSec)
@@ -75,7 +77,7 @@ export function ActiveFast({
     const revealed = !result.rating.wasPlacement || result.rating.placedNow
     return (
       <div
-        className={`anim-fade-in ${tierClass(revealed ? result.rating.rankAfter.tier : null)}`}
+        className={`anim-fade-in pb-24 ${tierClass(revealed ? result.rating.rankAfter.tier : null)}`}
       >
         {showOverlay && (
           <PromotionOverlay
@@ -159,7 +161,10 @@ export function ActiveFast({
           </div>
         )}
 
-        <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+        <div
+          className="fixed inset-x-0 z-40 mx-auto w-full max-w-md px-4 pb-3"
+          style={{ bottom: 'var(--nav-h, calc(4rem + env(safe-area-inset-bottom)))' }}
+        >
           <Button size="lg" full onClick={() => router.refresh()}>
             Continue
           </Button>
@@ -169,7 +174,7 @@ export function ActiveFast({
   }
 
   return (
-    <div className={tierClass(tier)}>
+    <div className={`pb-24 ${tierClass(tier)}`}>
       <div className="relative mx-auto mt-4 aspect-square w-full max-w-72">
         <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
           <circle
@@ -197,10 +202,10 @@ export function ActiveFast({
           <div className="text-[10px] font-semibold uppercase tracking-widest text-muted">
             {done ? 'Window reached' : 'Remaining'}
           </div>
-          <div className="num mt-1 text-5xl font-bold leading-none">
+          <div className="num mt-1 text-5xl font-bold leading-none" suppressHydrationWarning>
             {formatDuration(done ? elapsedSec : remainingSec)}
           </div>
-          <div className="mt-2 text-xs text-muted">
+          <div className="mt-2 text-xs text-muted" suppressHydrationWarning>
             {done ? `Target ${formatDuration(targetSec)}` : `Elapsed ${formatDuration(elapsedSec)}`}
           </div>
         </div>
@@ -228,7 +233,10 @@ export function ActiveFast({
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+      <div
+        className="fixed inset-x-0 z-40 mx-auto w-full max-w-md px-4 pb-3"
+        style={{ bottom: 'var(--nav-h, calc(4rem + env(safe-area-inset-bottom)))' }}
+      >
         {done ? (
           <Button size="lg" full disabled={pending} onClick={complete}>
             Complete Fast

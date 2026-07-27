@@ -4,7 +4,8 @@ import { Screen } from '@/components/ui/Screen'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { currentStreak } from '@/lib/data/fasts'
 import { matchCounts } from '@/lib/data/history'
-import { getProfile } from '@/lib/data/profile'
+import { redirect } from 'next/navigation'
+import { getProfile, isOnboarded } from '@/lib/data/profile'
 import { getAllRatings } from '@/lib/data/ratings'
 import { levelFromXp, placementsRemaining, rankFromMmr, type Playlist } from '@/lib/rating'
 import { PLAYLIST_LABEL } from '@/lib/ui/tier'
@@ -15,6 +16,7 @@ export const dynamic = 'force-dynamic'
 const PLAYLISTS: Playlist[] = ['push', 'pull', 'legs', 'fasting']
 
 export default function ProfilePage() {
+  if (!isOnboarded()) redirect('/onboarding')
   const profile = getProfile()
   const level = levelFromXp(profile.xp)
   const ratings = getAllRatings()

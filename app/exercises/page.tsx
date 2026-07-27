@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { RankBadge } from '@/components/ui/RankBadge'
 import { Screen } from '@/components/ui/Screen'
 import { exerciseRank, listExercises } from '@/lib/data/exercises'
+import { isOnboarded } from '@/lib/data/profile'
 import type { WorkoutType } from '@/db/schema'
 import { PLAYLIST_LABEL } from '@/lib/ui/tier'
 
@@ -10,6 +12,7 @@ export const dynamic = 'force-dynamic'
 const GROUPS: WorkoutType[] = ['push', 'pull', 'legs']
 
 export default function ExercisesPage() {
+  if (!isOnboarded()) redirect('/onboarding')
   return (
     <Screen title="Exercise Library" back="/profile">
       {GROUPS.map((type) => {
@@ -34,7 +37,7 @@ export default function ExercisesPage() {
                       <span className="block truncate font-display text-sm font-semibold">
                         {exercise.name}
                       </span>
-                      <span className="block truncate text-xs text-muted">
+                      <span className="block text-xs leading-snug text-muted">
                         {exercise.equipment}
                       </span>
                     </span>

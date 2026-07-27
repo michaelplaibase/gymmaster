@@ -68,9 +68,9 @@ export function AppNav() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/90 backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-30 h-[var(--nav-h,calc(4rem_+_env(safe-area-inset-bottom)))] border-t border-border bg-bg/90 backdrop-blur"
     >
-      <div className="mx-auto flex w-full max-w-md pb-safe">
+      <div className="mx-auto flex h-full w-full max-w-md pb-safe">
         {TABS.map((tab) => {
           const active = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href)
           return (

@@ -8,6 +8,7 @@ import {
   addExerciseToWorkout,
   deleteSet,
   finishWorkout,
+  getWorkout,
   logSet,
   removeExerciseFromWorkout,
   startWorkout,
@@ -47,14 +48,25 @@ export async function removeExerciseAction(workoutId: number, exerciseId: string
 }
 
 export async function finishMatchAction(workoutId: number): Promise<void> {
-  finishWorkout(workoutId)
-  revalidatePath('/train')
-  revalidatePath(`/train/${workoutId}`)
+  // A double submitted finish re posts after the first call already completed
+  // the workout. Redirect to its summary instead of letting finishWorkout
+  // throw 'Workout is not active'.
+  if (getWorkout(workoutId)?.status !== 'completed') {
+    finishWorkout(workoutId)
+    revalidatePath('/train')
+    revalidatePath(`/train/${workoutId}`)
+  }
   redirect(`/train/${workoutId}/summary`)
 }
 
 export async function abandonMatchAction(workoutId: number): Promise<void> {
-  abandonWorkout(workoutId)
-  revalidatePath('/train')
+  const workout = getWorkout(workoutId)
+  // A double submitted abandon re posts after the row is gone (or a finish
+  // landed first and completed it). Redirect instead of throwing.
+  if (workout?.status === 'completed') redirect(`/train/${workoutId}/summary`)
+  if (workout) {
+    abandonWorkout(workoutId)
+    revalidatePath('/train')
+  }
   redirect('/train')
 }

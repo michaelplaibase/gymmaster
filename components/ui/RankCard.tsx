@@ -21,10 +21,8 @@ export function RankCard({
   const placing = sessionsPlayed < PLACEMENT_SESSIONS
   const remaining =
     placementsRemaining ?? Math.max(0, PLACEMENT_SESSIONS - sessionsPlayed)
-  const placementNumber = Math.min(
-    PLACEMENT_SESSIONS,
-    PLACEMENT_SESSIONS - remaining + 1,
-  )
+  const placementsComplete = Math.max(0, PLACEMENT_SESSIONS - remaining)
+  const placementLabel = `${placementsComplete} of ${PLACEMENT_SESSIONS} placements complete`
   const progress = placing ? sessionsPlayed / PLACEMENT_SESSIONS : rank.progress
   const tier = placing ? null : rank.tier
   const surface = `relative overflow-hidden border border-border bg-surface ${tierGradient(tier)} ${tierClass(tier)}`
@@ -39,7 +37,7 @@ export function RankCard({
               {PLAYLIST_LABEL[playlist]}
             </div>
             <div className="truncate font-display text-[13px] font-semibold">
-              {placing ? `Placement ${placementNumber} of ${PLACEMENT_SESSIONS}` : rank.label}
+              {placing ? placementLabel : rank.label}
             </div>
           </div>
           {!placing && <div className="num text-lg font-bold">{mmr}</div>}
@@ -61,7 +59,7 @@ export function RankCard({
           </div>
           {placing ? (
             <div className="mt-1 font-display text-lg font-semibold">
-              Placement {placementNumber} of {PLACEMENT_SESSIONS}
+              {placementLabel}
             </div>
           ) : (
             <>

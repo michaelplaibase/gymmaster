@@ -86,7 +86,8 @@ export function getWorkoutDetailForHistory(id: number): WorkoutSummary | null {
   return getWorkoutSummary(id)
 }
 
-// Completed matches per playlist: completed workouts by type, completed fasts.
+// Played matches per playlist: completed workouts by type, finished fasts
+// (completed and ended_early both count, an ended early fast is still a played match).
 export function matchCounts(): Record<Playlist, number> {
   const counts: Record<Playlist, number> = { push: 0, pull: 0, legs: 0, fasting: 0 }
   const workoutRows = db
@@ -99,7 +100,7 @@ export function matchCounts(): Record<Playlist, number> {
   const fastRow = db
     .select({ n: count() })
     .from(fasts)
-    .where(eq(fasts.status, 'completed'))
+    .where(ne(fasts.status, 'active'))
     .get()
   counts.fasting = fastRow?.n ?? 0
   return counts

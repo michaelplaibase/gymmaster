@@ -52,7 +52,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
         <div className="text-[10px] font-semibold uppercase tracking-widest text-muted">MMR</div>
         <div
           className={`num text-7xl font-bold leading-none ${
-            delta >= 0 ? 'text-success' : 'text-danger'
+            delta > 0 ? 'text-success' : delta < 0 ? 'text-danger' : 'text-muted'
           }`}
         >
           {delta >= 0 ? `+${delta}` : String(delta)}

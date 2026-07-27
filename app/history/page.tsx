@@ -1,10 +1,17 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { RankBadge } from '@/components/ui/RankBadge'
 import { Screen } from '@/components/ui/Screen'
 import { formatDuration, formatRelativeDay } from '@/lib/date'
 import { listHistory, type HistoryEntry } from '@/lib/data/history'
-import { PLAYLIST_LABEL } from '@/lib/ui/tier'
+import { isOnboarded } from '@/lib/data/profile'
+import { getAllRatings } from '@/lib/data/ratings'
+import { isPlacement, rankFromMmr, type Playlist, type Rank, type Tier } from '@/lib/rating'
+import { PLAYLIST_LABEL, tierClass } from '@/lib/ui/tier'
 
 export const dynamic = 'force-dynamic'
+
+const UNRANKED: Rank = { tier: null, division: null, label: 'Unranked', progress: 0 }
 
 function DeltaChip({ delta }: { delta: number | null }) {
   if (delta === null) return null
@@ -51,7 +58,17 @@ function RowBody({ entry }: { entry: HistoryEntry }) {
 }
 
 export default function HistoryPage() {
+  if (!isOnboarded()) redirect('/onboarding')
   const entries = listHistory()
+
+  const ratings = getAllRatings()
+  function tierOf(playlist: Playlist): Tier | null {
+    const rating = ratings[playlist]
+    return isPlacement(rating.sessionsPlayed) ? null : rankFromMmr(rating.mmr).tier
+  }
+  function entryTierClass(entry: HistoryEntry): string {
+    return tierClass(tierOf(entry.kind === 'workout' ? entry.workoutType : 'fasting'))
+  }
 
   const groups: { label: string; entries: HistoryEntry[] }[] = []
   for (const entry of entries) {
@@ -65,7 +82,10 @@ export default function HistoryPage() {
     <Screen title="Match History" back="/">
       {entries.length === 0 && (
         <div className="rounded-2xl border border-border bg-surface p-6 text-center">
-          <div className="font-display text-lg font-semibold">No matches yet</div>
+          <div className="flex justify-center">
+            <RankBadge rank={UNRANKED} size="lg" hidden />
+          </div>
+          <div className="mt-3 font-display text-lg font-semibold">No matches yet</div>
           <p className="mt-1 text-sm text-muted">
             Finish a training match or a fasting window and it shows up here.
           </p>
@@ -83,8 +103,9 @@ export default function HistoryPage() {
                 <Link
                   key={`w${entry.id}`}
                   href={`/history/${entry.id}`}
-                  className="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-surface p-3 active:bg-surface-2"
+                  className={`relative flex min-h-14 items-center gap-3 overflow-hidden rounded-xl border border-border bg-surface p-3 pl-4 active:bg-surface-2 ${entryTierClass(entry)}`}
                 >
+                  <span aria-hidden className="tier-bg absolute inset-y-0 left-0 w-1" />
                   <RowBody entry={entry} />
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path
@@ -100,8 +121,9 @@ export default function HistoryPage() {
               ) : (
                 <div
                   key={`f${entry.id}`}
-                  className="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-surface p-3"
+                  className={`relative flex min-h-14 items-center gap-3 overflow-hidden rounded-xl border border-border bg-surface p-3 pl-4 ${entryTierClass(entry)}`}
                 >
+                  <span aria-hidden className="tier-bg absolute inset-y-0 left-0 w-1" />
                   <RowBody entry={entry} />
                 </div>
               )

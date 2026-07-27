@@ -38,7 +38,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 function HistoryRow({ entry }: { entry: HistoryEntry }) {
   const isWorkout = entry.kind === 'workout'
   const main = isWorkout
-    ? `${entry.setCount} sets${entry.prCount > 0 ? `, ${entry.prCount} PR` : ''}`
+    ? `${entry.setCount} ${entry.setCount === 1 ? 'set' : 'sets'}${entry.prCount > 0 ? `, ${entry.prCount} PR` : ''}`
     : `${entry.preset}, ${entry.outcome === 'completed' ? 'completed' : 'ended early'}`
   return (
     <Link
@@ -85,7 +85,7 @@ export default function HomePage() {
   const resumeClass = `${actionBase} border border-success/50 bg-surface-2 active:bg-border/60`
 
   return (
-    <main className="px-4 pt-safe pb-[calc(env(safe-area-inset-bottom)+6.5rem)]">
+    <main className="px-4 pt-safe pb-[calc(var(--nav-h,calc(4rem_+_env(safe-area-inset-bottom)))_+_2.5rem)]">
       <div className="space-y-6 pt-5">
         <header>
           <div className="flex items-baseline justify-between">
@@ -210,11 +210,11 @@ export default function HomePage() {
         </section>
 
         <section>
-          <div className="mb-2 flex items-baseline justify-between">
+          <div className="mb-2 flex items-center justify-between">
             <SectionTitle>Recent matches</SectionTitle>
             <Link
               href="/history"
-              className="text-[11px] font-semibold uppercase tracking-widest text-muted active:text-text"
+              className="-my-3 -mr-2 flex min-h-11 min-w-11 items-center justify-center px-2 text-[11px] font-semibold uppercase tracking-widest text-muted active:text-text"
             >
               All
             </Link>

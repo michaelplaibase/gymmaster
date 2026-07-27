@@ -72,6 +72,31 @@ describe('rankFromRatio', () => {
     expect(rankFromRatio(1.92, BENCH_MALE).label).toBe('Emerald I')
   })
 
+  it('exact division boundaries land in the higher division despite float error', () => {
+    // QA case 1: 80 kg e1RM at 60 kg bodyweight is ratio 1.3333..., exactly one
+    // third into Platinum [1.25, 1.5), so Platinum II (was Platinum III).
+    const platinum = rankFromRatio(strengthRatio(80, 60), BENCH_MALE)
+    expect(platinum.label).toBe('Platinum II')
+    expect(platinum.division).toBe(2)
+    expect(platinum.progress).toBeCloseTo(0, 6)
+    // QA case 2: 80 kg e1RM at 120 kg bodyweight is ratio 0.6666..., exactly two
+    // thirds into Bronze [0.5, 0.75), so Bronze I (was Bronze II).
+    const bronze = rankFromRatio(strengthRatio(80, 120), BENCH_MALE)
+    expect(bronze.label).toBe('Bronze I')
+    expect(bronze.division).toBe(1)
+    expect(bronze.progress).toBeCloseTo(0, 6)
+  })
+
+  it('general rule: one third and two thirds of a tier are II and I entry points', () => {
+    // Gold spans [1.0, 1.25): thirds at 1.0 + 0.25 / 3 and 1.0 + 0.5 / 3.
+    const oneThird = rankFromRatio(1.0 + 0.25 / 3, BENCH_MALE)
+    expect(oneThird.label).toBe('Gold II')
+    expect(oneThird.progress).toBeCloseTo(0, 6)
+    const twoThirds = rankFromRatio(1.0 + 0.5 / 3, BENCH_MALE)
+    expect(twoThirds.label).toBe('Gold I')
+    expect(twoThirds.progress).toBeCloseTo(0, 6)
+  })
+
   it('2.00 (entry plus one full span) is Emerald I with progress 1', () => {
     const rank = rankFromRatio(2.0, BENCH_MALE)
     expect(rank.label).toBe('Emerald I')
@@ -99,8 +124,14 @@ describe('repsForRatio', () => {
     expect(repsForRatio(1.55)).toBe(17)
   })
 
-  it('never goes below 0 reps', () => {
-    expect(repsForRatio(1)).toBe(0)
+  it('floors at 1 rep for any ratio at or above 1.0 (0 reps cannot produce an e1RM)', () => {
+    expect(repsForRatio(1)).toBe(1)
+    expect(repsForRatio(1.01)).toBe(1)
+    expect(repsForRatio(1.0167)).toBe(1)
+  })
+
+  it('returns 0 reps only below ratio 1.0', () => {
     expect(repsForRatio(0.5)).toBe(0)
+    expect(repsForRatio(0.99)).toBe(0)
   })
 })

@@ -18,6 +18,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "RANKED",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: "/icons/icon-192.png",
+  },
 };
 
 export const viewport: Viewport = {

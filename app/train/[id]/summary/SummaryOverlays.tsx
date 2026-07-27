@@ -42,8 +42,10 @@ function PlacedOverlay({ rank, onDismiss }: { rank: Rank; onDismiss: () => void 
 }
 
 // Shows the placement / promotion / demotion celebration exactly once per
-// match: the first render marks it seen in sessionStorage, so a refresh or a
-// revisit never replays it.
+// match: the first render marks it seen in localStorage. The guard is durable
+// on purpose: the summary reconstructs placedNow as true forever for the
+// final placement workout, so a session scoped guard would replay the
+// celebration every time the old summary URL opens in a new browser session.
 export function SummaryOverlays({
   workoutId,
   placedNow,
@@ -66,10 +68,10 @@ export function SummaryOverlays({
     if (!kind) return
     const key = `ranked-celebrated-${workoutId}`
     try {
-      if (sessionStorage.getItem(key)) return
-      sessionStorage.setItem(key, '1')
+      if (localStorage.getItem(key)) return
+      localStorage.setItem(key, '1')
     } catch {
-      // sessionStorage unavailable: still celebrate, just without the guard.
+      // localStorage unavailable: still celebrate, just without the guard.
     }
     setShow(kind)
   }, [workoutId, placedNow, promoted, demoted])

@@ -4,6 +4,11 @@ function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value))
 }
 
+// Absorbs floating point error at exact division boundaries so a ratio that is
+// mathematically on a boundary (e.g. exactly one third into a tier) lands in the
+// HIGHER division instead of one division too low.
+const BOUNDARY_EPSILON = 1e-9
+
 export function strengthRatio(e1rmValue: number, bodyweightKg: number): number {
   return e1rmValue / bodyweightKg
 }
@@ -32,7 +37,7 @@ export function rankFromRatio(ratio: number, thresholds: number[]): Rank {
     return { tier, division: 1, label: `${tierLabel(tier)} I`, progress: 1 }
   }
   // Each tier splits into 3 equal divisions: lower third III, middle II, upper third I.
-  const divisionIndex = Math.min(Math.floor(position * 3), 2)
+  const divisionIndex = Math.min(Math.floor(position * 3 + BOUNDARY_EPSILON), 2)
   const division = (3 - divisionIndex) as Division
   return {
     tier,
@@ -43,6 +48,8 @@ export function rankFromRatio(ratio: number, thresholds: number[]): Rank {
 }
 
 // Inverse of the bodyweight case at zero added weight: reps such that 1 + reps / 30 === ratio.
+// Zero reps cannot produce an e1RM, so any ratio at or above 1.0 needs at least 1 rep.
 export function repsForRatio(ratio: number): number {
-  return Math.max(0, Math.round((ratio - 1) * 30))
+  if (ratio < 1) return 0
+  return Math.max(1, Math.round((ratio - 1) * 30))
 }

@@ -1,7 +1,9 @@
 import { notFound, redirect } from 'next/navigation'
 import { listExercises } from '@/lib/data/exercises'
 import { getProfile } from '@/lib/data/profile'
+import { getRating } from '@/lib/data/ratings'
 import { getWorkoutDetail } from '@/lib/data/workouts'
+import { PLACEMENT_SESSIONS, rankFromMmr } from '@/lib/rating'
 import { ActiveWorkout } from './ActiveWorkout'
 
 export const dynamic = 'force-dynamic'
@@ -19,10 +21,17 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
     .flat()
     .sort((a, b) => a.id - b.id)
 
+  // Playlist tier accent for the active match screen. During placements the
+  // tier is unknown, mirroring how RankCard treats a placing playlist.
+  const rating = getRating(detail.workout.workoutType)
+  const tier =
+    rating.sessionsPlayed < PLACEMENT_SESSIONS ? null : rankFromMmr(rating.mmr).tier
+
   return (
     <ActiveWorkout
       workoutId={workoutId}
       workoutType={detail.workout.workoutType}
+      tier={tier}
       startedAtMs={detail.workout.startedAt.getTime()}
       defaultRestSec={profile.defaultRestSec}
       exercises={detail.exercises.map((exercise) => ({
