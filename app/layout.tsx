@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Chakra_Petch, Inter } from "next/font/google";
+import { AppNav } from "@/components/shell/AppNav";
 import "./globals.css";
 
 const chakra = Chakra_Petch({
@@ -36,6 +37,7 @@ export default function RootLayout({
     <html lang="en" className={`${chakra.variable} ${inter.variable}`}>
       <body className="font-body antialiased">
         <div className="mx-auto w-full max-w-md min-h-dvh">{children}</div>
+        <AppNav />
       </body>
     </html>
   );

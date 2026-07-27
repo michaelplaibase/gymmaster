@@ -89,4 +89,120 @@
   .tier-glow {
     box-shadow: 0 0 24px -4px var(--tier);
   }
+
+  .anim-fade-in {
+    animation: fade-in 0.25s ease-out both;
+  }
+  .animate-sheet-in {
+    animation: sheet-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  .anim-promo-burst {
+    animation: promo-burst 0.9s ease-out both;
+    animation-delay: 0.1s;
+  }
+  .anim-promo-badge {
+    animation: promo-badge 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-promo-word {
+    animation: promo-word 0.2s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    animation-delay: 0.55s;
+  }
+  .anim-promo-rise {
+    animation: promo-rise 0.4s ease-out both;
+    animation-delay: 0.8s;
+  }
+
+  .demoted .anim-promo-burst {
+    animation-duration: 1.8s;
+    filter: saturate(0.3) brightness(0.6);
+  }
+  .demoted .anim-promo-badge {
+    animation-duration: 1.4s;
+    filter: saturate(0.35) brightness(0.85);
+  }
+  .demoted .anim-promo-word {
+    animation-delay: 1s;
+  }
+  .demoted .anim-promo-rise {
+    animation-delay: 1.3s;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes promo-burst {
+  0% {
+    transform: scale(0.15);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes promo-badge {
+  0% {
+    transform: scale(0.25);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes promo-word {
+  0% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes promo-rise {
+  0% {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-in,
+  .animate-sheet-in,
+  .anim-promo-burst,
+  .anim-promo-badge,
+  .anim-promo-word,
+  .anim-promo-rise {
+    animation: none;
+  }
 }
