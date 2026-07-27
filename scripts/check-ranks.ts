@@ -262,6 +262,47 @@ function main(): void {
     ),
   );
 
+  // Table 4: bodyweight movement rep ladder for an 80 kg male. Bodyweight-only
+  // sets at rising rep counts, then added-weight singles.
+  const BW_LIFTS = ['pull-up', 'dips'] as const;
+  const BW_REPS = [1, 3, 5, 8, 10, 12, 15, 20, 25];
+  const BW_ADDED_SINGLES = [20, 40, 60];
+  console.log(`\nTABLE 4: bodyweight movement rep ladder for an ${kg(LADDER_BW)} kg male`);
+  console.log('(bw = bodyweight-only set; +N kg = added weight on top of bodyweight)');
+  const bwRows: string[][] = [];
+  for (const lift of BW_LIFTS) {
+    if (!exercises.has(lift) || !thresholds.has(lift)) {
+      fail(`Seed problem: bodyweight exercise '${lift}' not found in the database.`);
+    }
+    for (const reps of BW_REPS) {
+      const { e1rmValue, ratio, rank } = rankFor(lift, { weightKg: 0, reps }, LADDER_BW);
+      bwRows.push([
+        exercises.get(lift)!.name,
+        `bw x ${reps}`,
+        kg(e1rmValue),
+        ratioStr(ratio),
+        rank.label,
+      ]);
+    }
+    for (const added of BW_ADDED_SINGLES) {
+      const { e1rmValue, ratio, rank } = rankFor(lift, { weightKg: added, reps: 1 }, LADDER_BW);
+      bwRows.push([
+        exercises.get(lift)!.name,
+        `bw +${kg(added)} x 1`,
+        kg(e1rmValue),
+        ratioStr(ratio),
+        rank.label,
+      ]);
+    }
+  }
+  console.log(
+    renderTable(
+      ['Exercise', 'Set', 'e1RM (kg)', 'Ratio', 'Rank'],
+      bwRows,
+      [false, false, true, true, false],
+    ),
+  );
+
   // Wiring assertion: the 85 kg lifter's bench 100x5 must land in Gold..Diamond.
   const okTiers: (Tier | null)[] = ['gold', 'platinum', 'diamond'];
   if (!benchAt85 || !okTiers.includes(benchAt85.tier)) {
@@ -273,6 +314,46 @@ function main(): void {
   console.log(
     `\nWiring check passed: 85 kg bench 100x5 ranks as ${benchAt85.label} (within Gold to Diamond).`,
   );
+
+  // Bodyweight ladder assertions: the recalibrated pull-up and dips thresholds
+  // must keep a single bodyweight rep ranked and keep the upper tiers reachable.
+  const bwRank = (lift: string, set: SampleSet): Rank => rankFor(lift, set, LADDER_BW).rank;
+  const tierIndex = (rank: Rank): number => (rank.tier === null ? -1 : TIERS.indexOf(rank.tier));
+  const assertLadder = (desc: string, expected: string, rank: Rank, ok: boolean): void => {
+    if (!ok) {
+      fail(`\nLADDER CHECK FAILED: ${desc} came out as '${rank.label}', expected ${expected}.`);
+    }
+    console.log(`Ladder check passed: ${desc} ranks ${rank.label} (expected ${expected}).`);
+  };
+
+  const onePullup = bwRank('pull-up', { weightKg: 0, reps: 1 });
+  assertLadder('1 bodyweight pull-up', 'Bronze, not Unranked', onePullup, onePullup.tier === 'bronze');
+
+  const tenPullups = bwRank('pull-up', { weightKg: 0, reps: 10 });
+  assertLadder('10 bodyweight pull-ups', 'Gold', tenPullups, tenPullups.tier === 'gold');
+
+  // The calibration anchors Diamond at about 21 reps (ratio 1.70). 20 reps give
+  // ratio 1.667, one rep shy of the Diamond entry, so the high-rep guard checks
+  // that 20 reps reach at least Platinum I and that 21 reps reach Diamond.
+  const twentyPullups = bwRank('pull-up', { weightKg: 0, reps: 20 });
+  assertLadder(
+    '20 bodyweight pull-ups',
+    'Platinum I or above',
+    twentyPullups,
+    tierIndex(twentyPullups) > TIERS.indexOf('platinum') ||
+      (twentyPullups.tier === 'platinum' && twentyPullups.division === 1),
+  );
+
+  const twentyOnePullups = bwRank('pull-up', { weightKg: 0, reps: 21 });
+  assertLadder(
+    '21 bodyweight pull-ups',
+    'Diamond or above',
+    twentyOnePullups,
+    tierIndex(twentyOnePullups) >= TIERS.indexOf('diamond'),
+  );
+
+  const oneDip = bwRank('dips', { weightKg: 0, reps: 1 });
+  assertLadder('1 bodyweight dip', 'Bronze, not Unranked', oneDip, oneDip.tier === 'bronze');
 }
 
 main();

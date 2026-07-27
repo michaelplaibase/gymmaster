@@ -138,8 +138,8 @@ export const seedExercises: SeedExercise[] = [
     inDefaultTemplate: true,
     sortOrder: 4,
     thresholds: {
-      male: [1.15, 1.3, 1.5, 1.7, 1.9, 2.1],
-      female: [1.05, 1.15, 1.3, 1.48, 1.68, 1.9],
+      male: [1.0, 1.15, 1.33, 1.55, 1.78, 2.0],
+      female: [1.0, 1.1, 1.25, 1.45, 1.65, 1.85],
     },
   },
   {
@@ -263,8 +263,8 @@ export const seedExercises: SeedExercise[] = [
     inDefaultTemplate: true,
     sortOrder: 2,
     thresholds: {
-      male: [1.1, 1.27, 1.45, 1.65, 1.9, 2.15],
-      female: [1.02, 1.12, 1.27, 1.45, 1.65, 1.9],
+      male: [1.0, 1.17, 1.33, 1.5, 1.7, 1.9],
+      female: [1.0, 1.1, 1.25, 1.42, 1.6, 1.8],
     },
   },
   {
